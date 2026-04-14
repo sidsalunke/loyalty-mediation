@@ -1,0 +1,9 @@
+# Test profile — Solace is not available; subscription is disabled.
+# WireMock stubs the vendor API on a random port injected at test startup.
+
+solace:
+  host: tcp://localhost:55555
+  subscription:
+    enabled: false
+
+# vendor.base-url is set programmatically in the test via @DynamicPropertySource

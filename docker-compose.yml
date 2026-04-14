@@ -1,0 +1,84 @@
+# ── Loyalty Mediation — Local Dev Stack ──────────────────────────────────────
+#
+# Services:
+#   solace        — Solace PubSub+ Standard (free) message broker
+#   vendor-mock   — Simulated vendor loyalty API (port 8081)
+#   mediation     — Mediation service (port 8080)
+#
+# Usage:
+#   docker-compose up -d solace          # start broker only (first time, wait ~30s)
+#   docker-compose up -d                 # start full stack
+#   docker-compose logs -f mediation     # tail logs
+#   docker-compose down                  # stop all
+#
+# Solace Management UI: http://localhost:8008  (admin / admin)
+# Note: Solace SEMP is on container port 8080, mapped to host 8008 to avoid
+#       conflict with the mediation service which owns host port 8080.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  solace:
+    image: solace/solace-pubsub-standard:10.4.1  # 10.8+ crashes on Docker Desktop for Windows due to platform-audit regression
+    container_name: loyalty-solace
+    hostname: solace
+    environment:
+      - username_admin_globalaccesslevel=admin
+      - username_admin_password=admin
+    ports:
+      - "8008:8080"    # SEMP management UI  → http://localhost:8008
+      - "55555:55555"  # SMF (Solace Message Format) — used by JCSMP
+      - "1883:1883"    # MQTT
+      - "5672:5672"    # AMQP
+    shm_size: "1g"
+    cap_add:
+      - SYS_PTRACE   # required for Solace platform-audit script
+      - IPC_LOCK     # required for Solace shared-memory operations
+    ulimits:
+      core: 0
+      nofile:
+        soft: 2448
+        hard: 6592
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -u admin:admin http://localhost:8080/SEMP/v2/config/ -o /dev/null"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 90s
+
+  vendor-mock:
+    build:
+      context: .
+      dockerfile: vendor-mock/Dockerfile
+    container_name: loyalty-vendor-mock
+    depends_on:
+      solace:
+        condition: service_healthy
+    environment:
+      SOLACE_HOST: tcp://solace:55555
+      SOLACE_VPN: default
+      SOLACE_USERNAME: admin
+      SOLACE_PASSWORD: admin
+      VENDOR_MOCK_EVENT_DELAY_MS: 1000
+    ports:
+      - "8081:8081"
+
+  mediation:
+    build:
+      context: .
+      dockerfile: mediation-service/Dockerfile
+    container_name: loyalty-mediation
+    depends_on:
+      solace:
+        condition: service_healthy
+      vendor-mock:
+        condition: service_started
+    environment:
+      VENDOR_BASE_URL: http://vendor-mock:8081
+      SOLACE_HOST: tcp://solace:55555
+      SOLACE_VPN: default
+      SOLACE_USERNAME: admin
+      SOLACE_PASSWORD: admin
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+    ports:
+      - "8080:8080"
