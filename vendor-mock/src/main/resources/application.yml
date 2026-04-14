@@ -1,0 +1,25 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: loyalty-vendor-mock
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+# Solace PubSub+ connection
+solace:
+  host: ${SOLACE_HOST:tcp://localhost:55555}
+  vpn: ${SOLACE_VPN:default}
+  username: ${SOLACE_USERNAME:admin}
+  password: ${SOLACE_PASSWORD:admin}
+
+# How long (ms) to wait before publishing the Solace enrolment event.
+vendor-mock:
+  event-delay-ms: ${VENDOR_MOCK_EVENT_DELAY_MS:1000}
+
+logging:
+  level:
+    com.loyalty: DEBUG
+    com.solacesystems: WARN

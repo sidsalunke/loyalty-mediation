@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: loyalty-mediation-service
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+# Vendor mock URL — overridden in tests via @DynamicPropertySource
+# In Docker, VENDOR_BASE_URL env var is set by docker-compose
+vendor:
+  base-url: ${VENDOR_BASE_URL:http://localhost:8081}
+
+# Solace PubSub+ connection
+solace:
+  host: ${SOLACE_HOST:tcp://localhost:55555}
+  vpn: ${SOLACE_VPN:default}
+  username: ${SOLACE_USERNAME:admin}
+  password: ${SOLACE_PASSWORD:admin}
+  subscription:
+    enabled: true
+
+# CORS — allow the React dev server
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+logging:
+  level:
+    com.loyalty: DEBUG
+    com.solacesystems: WARN
