@@ -41,12 +41,3 @@ jobs:
           name: surefire-reports
           path: mediation-service/target/surefire-reports/
           retention-days: 14
-
-      # Publish test results as a PR check so failures surface inline.
-      - name: Publish test results
-        if: always()
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: mediation-service/target/surefire-reports/TEST-*.xml
-          check_name: BE CI — Test Results
-          comment_mode: always
